@@ -1,15 +1,15 @@
 section .text 
-
 global _start 
+
 _start: 
  	push _string_	
-	call _my_printf_ 
-	push _string_	
+;	push '#'
+
 	call _my_printf_ 
 
 	mov rax, 0x3c 
 	xor rdi, rdi
- 	syscall 
+ 	syscall
 
 ;================================================================
 ; Notes: порядок аргументов от вершины стека: строка
@@ -23,13 +23,12 @@ _my_printf_:
 	mov rdi, 1
 	mov rsi, [rbp]
 	push _string_	
-
+		;можно вызывать parsing строки
 	call get_string_len ; значение сразу кладется в rdx 
 	add rsp, 8 ; убираем строку из стека не засоряя регистры
 
 	;mov rdx, _string_len  
 	syscall
-
 	pop rbp
 	ret
 
@@ -41,21 +40,32 @@ _my_printf_:
 
 get_string_len:
 	push rbp
+	push rdi
+	push rax
+	push rcx
+
 	mov rbp, rsp
-	add rbp, 16
+	add rbp, 8 * 5 
 		
-	mov rdx, [rbp]; сохраняем начало строки 
-	.count:   	
-		inc rdx
-		cmp byte [rdx], '$'
-		jne .count
+	mov rdi, [rbp]; сохраняем начало строки
+	mov al, '$'
+	mov rcx, 50 ; определить через макрос максимальный размер буффера
+	 
+	repne scasb
 	
-	sub rdx, [rbp]
+	sub rcx, 50
+	not rcx
+	mov rdx, rcx
+	
+	pop rcx 
+	pop rax
+	pop rdi 	
 	pop rbp
 	ret
 
  
 section .data
 ;_string_: db `Hello\n` 
-_string_: db `Hello \nI'm Yasha!!!\n$`
+_string_: db `Hello %c !!!\n$`
 _string_len equ $ - _string_
+;vim:ft=nasm
