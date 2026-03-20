@@ -4,6 +4,9 @@ global _start
 _start: 
  	push _string_	
 	call _my_printf_ 
+	push _string_	
+	call _my_printf_ 
+
 	mov rax, 0x3c 
 	xor rdi, rdi
  	syscall 
@@ -22,12 +25,10 @@ _my_printf_:
 	push _string_	
 
 	call get_string_len ; значение сразу кладется в rdx 
+	add rsp, 8 ; убираем строку из стека не засоряя регистры
+
 	;mov rdx, _string_len  
 	syscall
-
-	mov rax, 0x3c
-	xor rdi, rdi
-	syscall 
 
 	pop rbp
 	ret
