@@ -2,8 +2,8 @@ section .text
 global _start 
 
 _start: 
+	push 'A'
  	push _string_	
-;	push '#'
 
 	call _my_printf_ 
 
@@ -22,13 +22,32 @@ _my_printf_:
 	mov rax, 0x01
 	mov rdi, 1
 	mov rsi, [rbp]
-	push _string_	
-		;можно вызывать parsing строки
-	call get_string_len ; значение сразу кладется в rdx 
-	add rsp, 8 ; убираем строку из стека не засоряя регистры
+	push rsi 
+	_print_string:
+		call get_string_len ; значение сразу кладется в rdx 
+		add rsp, 8 ; убираем строку из стека не засоряя регистры
 
-	;mov rdx, _string_len  
-	syscall
+		syscall
+		add rsi, rdx ; сдвинули указатель на символ
+		cmp byte [rsi], '$'
+		je .exit
+		
+		inc rsi
+		cmp byte [rsi], 'c'
+		jne .exit ; временно
+
+		push rsi
+		lea rsi, [rbp + 8] ; будет счетчик аргументов для сдвига
+		mov rdx, 1
+		mov rax, 1
+		syscall 
+		pop rsi
+		
+		inc rsi
+		push rsi
+		jmp _print_string 
+		
+	.exit:
 	pop rbp
 	ret
 
@@ -49,14 +68,28 @@ get_string_len:
 		
 	mov rdi, [rbp]; сохраняем начало строки
 	mov al, '$'
+	mov ah, '%'
 	mov rcx, 50 ; определить через макрос максимальный размер буффера
-	 
-	repne scasb
+
+	.strchr:
+		inc rdi
+		dec rcx
+	
+		cmp byte [rdi], ah
+		je .exit
+
+		cmp byte [rdi], al
+		je .exit
+		
+		jmp .strchr
+	
+	.exit:  
 	
 	sub rcx, 50
 	not rcx
 	mov rdx, rcx
-	
+	inc rdx
+
 	pop rcx 
 	pop rax
 	pop rdi 	
