@@ -9,9 +9,12 @@ extern exit
 section .data
 
 ;_string_: db `Hello\n` 
-_string_: db `Hello %s, I'm %c !!!\n$`
+_string_: db `Hello %b, I'm %c !!!\n$`
+_string2_: db `%b \n %b \n %b \n %b \n %b \n$`
 _name_: db `Yasha$`
-_string_len equ $ - _string_
+
+buff_num times 8 dq 0
+buff_rev times 8 dq 0
 
 spec_table:
 	dq exit

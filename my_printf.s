@@ -10,9 +10,13 @@ section .text
 global _start
 
 _start: 
-	push 'L'
- 	push _name_
-	push _string_	
+	;push 'L'
+ 	push 1
+	push 2
+	push 3
+	push 10
+	push 20
+	push _string2_	
 
 	call _my_printf_ 
 
@@ -95,6 +99,7 @@ get_string_len:
 ; Start: строка в стеке
 ; Return: длина строки до одного из специальных символов
 ;================================================================
+
 parsing_string:
 	push rbp
 	push rdi
@@ -109,15 +114,15 @@ parsing_string:
 	mov rcx, 50 ; определить через макрос максимальный размер буффера
 
 	.strchr:
-		inc rdi
-		dec rcx
 	
 		cmp byte [rdi], ah
 		je .exit
 
 		cmp byte [rdi], al
 		je .exit
-		
+	
+		inc rdi
+		dec rcx
 		jmp .strchr
 	
 	.exit:  
@@ -164,9 +169,67 @@ print_string:
 	jmp _print_string
 
 print_num_bin:
+	push rsi
+	mov rax, [rbp + 8 * rcx] ; забрали число
+	
+	mov rdi, buff_num
+	mov rsi, rdi
+
+	.converting_num:	
+		push rax
+		and rax, 1
+		call get_asci_code_reg
+		pop rax
+		shr rax, 1
+		test rax, rax
+		jnz .converting_num
+	
+	sub rdi, rsi
+	mov rdx, rdi
+	call make_buff_rev
+	mov rsi, buff_rev
+
+	mov rdi, 1	
+
+	mov rax, 1	
+	push rcx
+	syscall
+	pop rcx
+
+	pop rsi
+	jmp _print_string
+	
 print_num_dec:
 print_num_oct:
 print_num_hex:
 jmp _print_string
+; перенести первые 2 mov в print_num rdi-rsi=rdx обнуление можно не делать, так как сами задаем количество символов для печати
+get_asci_code_reg:
+	cmp al, 10
+	jge .letter
+		add al, '0'
+		stosb
+		ret
 
+	.letter:
+		lea rax, ['A' + rax - 10]
+		stosb
+		ret
+
+make_buff_rev:
+	push rcx
+	lea rdi, [buff_rev + rdx - 1]
+	mov rcx, rdx	
+	
+	.byte_cpy:
+		cld
+		lodsb
+		std
+		stosb
+		loop .byte_cpy	
+
+	cld
+	pop rcx
+	ret
+ 
 %include "data.s" 
