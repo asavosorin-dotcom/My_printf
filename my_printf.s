@@ -10,9 +10,9 @@ section .text
 global _start
 
 _start: 
-	push 'Y'
-	push 'A'
- 	push _string_	
+	push 'L'
+ 	push _name_
+	push _string_	
 
 	call _my_printf_ 
 
@@ -30,12 +30,11 @@ _my_printf_:
 	mov rbp, rsp
 	add rbp, 16 
 	xor rcx, rcx
-	mov rax, 0x01
 	mov rdi, 1
 	mov rsi, [rbp]
  
 	_print_string:
-
+		mov rax, 1
 		push rsi
 		call parsing_string ; значение сразу кладется в rdx 
 		add rsp, 8 ; убираем строку из стека не засоряя регистры
@@ -47,7 +46,8 @@ _my_printf_:
 		add rsi, rdx ; сдвинули указатель на символ
 		cmp byte [rsi], '$'
 		je exit
-
+		
+		inc rcx ; подумать куда вставлять увеличение счетчика
 		inc rsi	
 		mov bl, [rsi]
 		sub rbx, 'a'
@@ -83,7 +83,6 @@ get_string_len:
 	sub rcx, 50
 	not rcx
 	mov rdx, rcx
-	inc rdx
 
 	pop rcx 
 	pop rax
@@ -136,8 +135,7 @@ parsing_string:
 
 print_char:
 	push rsi
-	inc rcx ; подумать куда вставлять увеличение счетчика
-	lea rsi, [rbp + 8 * rcx] ; будет счетчик аргументов для сдвига%include "data.s"
+	lea rsi, [rbp + 8 * rcx] 
 	mov rdx, 1                                                     
 	mov rax, 1
 
@@ -148,11 +146,27 @@ print_char:
 	pop rsi
 	jmp _print_string
 
+print_string:
+	push rsi
+	mov rsi, [rbp + 8 * rcx]
+	
+	push rsi
+	call get_string_len
+	pop rsi
+
+	mov rax, 1
+
+	push rcx
+	syscall
+	pop rcx
+
+	pop rsi
+	jmp _print_string
+
 print_num_bin:
 print_num_dec:
 print_num_oct:
 print_num_hex:
-print_string:
 jmp _print_string
 
 %include "data.s" 

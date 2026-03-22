@@ -9,7 +9,8 @@ extern exit
 section .data
 
 ;_string_: db `Hello\n` 
-_string_: db `Hello %c and %c !!!\n$`
+_string_: db `Hello %s, I'm %c !!!\n$`
+_name_: db `Yasha$`
 _string_len equ $ - _string_
 
 spec_table:
