@@ -11,11 +11,12 @@ global _start
 
 _start: 
 	;push 'L'
- 	push 1
-	push 2
-	push 3
-	push 10
-	push 20
+	push 13
+	push 13
+	push 13
+	push 13
+	push 13
+
 	push _string2_	
 
 	call _my_printf_ 
@@ -170,17 +171,47 @@ print_string:
 
 print_num_bin:
 	push rsi
+	push rcx
+	push rbx
+	
 	mov rax, [rbp + 8 * rcx] ; забрали число
 	
+	mov cl, 1
+	mov rbx, 1
+	jmp print_num_main
+
+print_num_oct:
+	push rsi
+	push rcx
+	push rbx
+	
+	mov rax, [rbp + 8 * rcx] ; забрали число
+	
+	mov cl, 3
+	mov rbx, 7
+	jmp print_num_main
+
+print_num_hex:
+	push rsi
+	push rcx
+	push rbx
+	
+	mov rax, [rbp + 8 * rcx] ; забрали число
+	
+	mov cl, 4
+	mov rbx, 0fh
+	jmp print_num_main
+
+print_num_main:
 	mov rdi, buff_num
 	mov rsi, rdi
 
 	.converting_num:	
 		push rax
-		and rax, 1
+		and rax, rbx ; тут регистр с маской
 		call get_asci_code_reg
 		pop rax
-		shr rax, 1
+		shr rax, cl ; тут регистр со сдвигом
 		test rax, rax
 		jnz .converting_num
 	
@@ -192,18 +223,17 @@ print_num_bin:
 	mov rdi, 1	
 
 	mov rax, 1	
-	push rcx
 	syscall
-	pop rcx
 
+	pop rbx
+	pop rcx
 	pop rsi
 	jmp _print_string
 	
 print_num_dec:
-print_num_oct:
-print_num_hex:
+; в одном регистре сдвиг, в другом маска, а потом jmp на общую часть
 jmp _print_string
-; перенести первые 2 mov в print_num rdi-rsi=rdx обнуление можно не делать, так как сами задаем количество символов для печати
+
 get_asci_code_reg:
 	cmp al, 10
 	jge .letter
