@@ -1,3 +1,11 @@
+global print_num_bin
+global print_char
+global print_num_dec
+global print_num_oct
+global print_num_hex
+global print_string
+global exit
+
 section .text 
 global _start
 
@@ -25,9 +33,10 @@ _my_printf_:
 	mov rax, 0x01
 	mov rdi, 1
 	mov rsi, [rbp]
-	push rsi
  
 	_print_string:
+
+		push rsi
 		call parsing_string ; значение сразу кладется в rdx 
 		add rsp, 8 ; убираем строку из стека не засоряя регистры
 
@@ -37,29 +46,18 @@ _my_printf_:
 
 		add rsi, rdx ; сдвинули указатель на символ
 		cmp byte [rsi], '$'
-		je .exit
-		
-		inc rsi
-		cmp byte [rsi], 'c'
-		jne .exit ; временно
+		je exit
 
-			push rsi
-			inc rcx ; подумать куда вставлять увелчение счетчика
-			lea rsi, [rbp + 8 * rcx] ; будет счетчик аргументов для сдвига
-			mov rdx, 1
-			mov rax, 1
-			
-			push rcx
-			syscall 
-			pop rcx		
-
-			pop rsi
-		
+		inc rsi	
+		mov bl, [rsi]
+		sub rbx, 'a'
 		inc rsi
-		push rsi
+
+		jmp [spec_table + rbx * 8]
+
 		jmp _print_string 
 		
-	.exit:
+	exit:
 	pop rbp
 	ret
 
@@ -136,5 +134,25 @@ parsing_string:
 	pop rbp
 	ret
 
-%include "data.s"
- 
+print_char:
+	push rsi
+	inc rcx ; подумать куда вставлять увеличение счетчика
+	lea rsi, [rbp + 8 * rcx] ; будет счетчик аргументов для сдвига%include "data.s"
+	mov rdx, 1                                                     
+	mov rax, 1
+
+	push rcx
+	syscall 
+	pop rcx		
+								       
+	pop rsi
+	jmp _print_string
+
+print_num_bin:
+print_num_dec:
+print_num_oct:
+print_num_hex:
+print_string:
+jmp _print_string
+
+%include "data.s" 
