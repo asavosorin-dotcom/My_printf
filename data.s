@@ -10,7 +10,7 @@ section .data
 
 ;_string_: db `Hello\n` 
 _string_: db `Hello %b, I'm %c !!!\n$`
-_string2_: db `%b\n%o\n%x\n%o\n%o\n$`
+_string2_: db `%b\n%o\n%x\n%d\n$`
 _name_: db `Yasha$`
 
 buff_num times 8 dq 0

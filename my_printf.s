@@ -15,7 +15,6 @@ _start:
 	push 13
 	push 13
 	push 13
-	push 13
 
 	push _string2_	
 
@@ -230,10 +229,6 @@ print_num_main:
 	pop rsi
 	jmp _print_string
 	
-print_num_dec:
-; в одном регистре сдвиг, в другом маска, а потом jmp на общую часть
-jmp _print_string
-
 get_asci_code_reg:
 	cmp al, 10
 	jge .letter
@@ -261,5 +256,36 @@ make_buff_rev:
 	cld
 	pop rcx
 	ret
- 
+
+print_num_dec:
+	push rsi
+	push rcx
+	mov rdi, buff_num 
+	mov rsi, rdi
+
+	mov rax, [rbp + 8 * rcx]
+	
+	mov rcx, 10
+	.converting_num:
+		xor rdx, rdx
+		div rcx			
+		push rax
+		mov rax, rdx
+		call get_asci_code_reg
+		pop rax
+		test rax, rax
+		jnz .converting_num
+	
+	sub rdi, rsi
+	mov rdx, rdi
+	call make_buff_rev
+	mov rsi, buff_rev
+
+	mov rax, 1
+	mov rdi, 1
+	syscall
+	pop rcx
+	pop rsi
+	jmp _print_string 
+
 %include "data.s" 
