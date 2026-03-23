@@ -7,7 +7,7 @@ global print_string
 global exit
 
 PRINT_BUFF_SIZE equ 128
-
+extern printf
 section .text 
 global _start
 global _my_printf_
@@ -34,7 +34,7 @@ global _my_printf_
 ;=========================================================================================================================================
 
 _my_printf_:
-	pop r10 ; забрали адрес возврата
+	pop r15 ; забрали адрес возврата
 	push r9
 	push r8
 	push rcx
@@ -89,15 +89,20 @@ _my_printf_:
 	syscall 
 		
 	pop rbp
-	add rsp, 48
-	push r10
+	pop rdi
+	pop rsi
+	pop rdx
+	pop rcx
+	pop r8
+	pop r9
+	call printf
+	push r15
 	ret
 
 ;================================================================
 ; Start: строка находится в стеке
 ; Return: rdx - количество символов в строке
 ;================================================================
-
 get_string_len:
 	push rbp
 	push rdi
@@ -121,7 +126,6 @@ get_string_len:
 	pop rdi 	
 	pop rbp
 	ret
-
 
 ;================================================================
 ; Start: строка в стеке
@@ -274,13 +278,24 @@ make_buff_rev:
 print_num_dec:
 	push rsi
 	push rcx
-	push rdi
-
-	mov rdi, buff_num 
-	mov rsi, rdi
 
 	mov rax, [rbp + 8 * rcx]
+
+	test rax, 1000000000000000000000000000000b
+	jz plus 
 	
+	push rax
+	mov rax, '-'
+	stosb
+	call check_print_buff	
+	pop rax
+	
+	not eax 	
+	inc eax
+	plus:
+	push rdi
+	mov rdi, buff_num 
+	mov rsi, rdi	
 	mov rcx, 10
 
 	.converting_num:
