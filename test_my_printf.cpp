@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-extern "C" void _my_printf_(...)  __attribute__((cdecl));
+extern "C" void _my_printf_(...) ; 
 
 int main()
 {
