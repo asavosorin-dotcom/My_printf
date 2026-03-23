@@ -8,21 +8,23 @@ global exit
 
 section .text 
 global _start
+global _my_printf_
+; можно сделать буфер с реверсом, а перед ним буфер для вывода или просто 0x, 0b и использовать его соответственно только для вывода
 
-_start: 
-	;push 'L'
-	push 13
-	push 13
-	push 13
-	push 13
-
-	push _string2_	
-
-	call _my_printf_ 
-
-	mov rax, 0x3c 
-	xor rdi, rdi
- 	syscall
+;_start:
+;	;push 'L'
+;	;push 103
+;	;push 103
+;	;push 103
+;	;push 103
+;
+;	;push _string2_	
+;
+;	;call _my_printf_ 
+;
+;	mov rax, 0x3c 
+;	xor rdi, rdi
+; 	syscall
 
 ;=================================================================================
 ; Notes: порядок аргументов от вершины стека: строка со спецификаторами, аргументы
@@ -30,9 +32,19 @@ _start:
 ;=================================================================================
 
 _my_printf_:
+	pop r10 ; забрали адрес возврата
+	push r9
+	push r8
+	push rcx
+	push rdx
+	push rsi
+	push rdi
+	; пока segfault из-за неудачного ретерна, надо придумать как сделать трамплин с регистрами, потому что stdcall не работает
+
 	push rbp
 	mov rbp, rsp
-	add rbp, 16 
+	;add rbp, 16
+	add rbp, 8 
 	xor rcx, rcx
 	mov rdi, 1
 	mov rsi, [rbp]
@@ -48,7 +60,7 @@ _my_printf_:
 		pop rcx
 
 		add rsi, rdx ; сдвинули указатель на символ
-		cmp byte [rsi], '$'
+		cmp byte [rsi], `\0` 
 		je exit
 		
 		inc rcx ; подумать куда вставлять увеличение счетчика
@@ -63,6 +75,8 @@ _my_printf_:
 		
 	exit:
 	pop rbp
+	add rsp, 48
+	push r10
 	ret
 
 ;================================================================
@@ -79,7 +93,7 @@ get_string_len:
 	lea rbp, [rsp + 40]
 		
 	mov rdi, [rbp]; сохраняем начало строки
-	mov al, '$'
+	mov al, `\0`
 	mov rcx, 50 ; определить через макрос максимальный размер буффера
 
 	repne scasb
@@ -109,7 +123,7 @@ parsing_string:
 	lea rbp, [rsp + 40]
 		
 	mov rdi, [rbp]; сохраняем начало строки
-	mov al, '$'
+	mov al, `\0`
 	mov ah, '%'
 	mov rcx, 50 ; определить через макрос максимальный размер буффера
 
