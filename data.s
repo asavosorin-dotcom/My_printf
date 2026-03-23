@@ -16,6 +16,9 @@ _name_: db `Yasha$`
 buff_num times 8 dq 0
 buff_rev times 8 dq 0
 
+buff_print times 128 db 0
+end_of_buff:
+
 spec_table:
 	dq exit
 	dq print_num_bin

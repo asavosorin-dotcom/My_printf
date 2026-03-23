@@ -6,11 +6,12 @@ global print_num_hex
 global print_string
 global exit
 
+PRINT_BUFF_SIZE equ 128
+
 section .text 
 global _start
 global _my_printf_
-; можно сделать буфер с реверсом, а перед ним буфер для вывода или просто 0x, 0b и использовать его соответственно только для вывода
-
+; сделать буферизацию (вместо syscall, lodsb в буффер)
 ;_start:
 ;	;push 'L'
 ;	;push 103
@@ -46,37 +47,27 @@ _my_printf_:
 	;add rbp, 16
 	add rbp, 8 
 	xor rcx, rcx
-	mov rdi, 1
 	mov rsi, [rbp]
+	mov rdi, buff_print
  
 	_print_string:
-		mov rax, 1
-		push rsi
 		call parsing_string ; значение сразу кладется в rdx 
-		add rsp, 8 ; убираем строку из стека не засоряя регистры
+		xor rbx, rbx
 
-		push rcx
-		syscall
-		pop rcx
-
-		add rsi, rdx ; сдвинули указатель на символ
 		cmp byte [rsi], `\0` 
 		je exit
 		
 		inc rcx ; подумать куда вставлять увеличение счетчика
-		inc rsi	
+		inc rsi ; убираем %	
 		mov bl, [rsi]
 
 		cmp bl, '%'
 		jne .table
 		
-		mov rax, 1
-		mov rdi, 1
-		mov rdx, 1
-		push rcx
-		syscall
-		pop rcx
-		inc rsi
+		lodsb
+		stosb
+		call check_print_buff
+		
 		jmp _print_string		
 
 		.table:
@@ -86,8 +77,17 @@ _my_printf_:
 		jmp [spec_table + rbx * 8]
 
 		jmp _print_string 
-		
+
+	
 	exit:
+	sub rdi, buff_print
+	mov rdx, rdi
+	inc rdx ;!!!!!!!!!!!!
+	mov rax, 1
+	mov rdi, 1
+	mov rsi, buff_print
+	syscall 
+		
 	pop rbp
 	add rsp, 48
 	push r10
@@ -129,70 +129,52 @@ get_string_len:
 ;================================================================
 
 parsing_string:
-	push rbp
-	push rdi
 	push rax
 	push rcx
 
-	lea rbp, [rsp + 40]
-		
-	mov rdi, [rbp]; сохраняем начало строки
-	mov al, `\0`
-	mov ah, '%'
+	mov bl, `\0`
+	mov bh, '%'
 	mov rcx, 50 ; определить через макрос максимальный размер буффера
 
 	.strchr:
 	
-		cmp byte [rdi], ah
+		cmp byte [rsi], bh
 		je .exit
 
-		cmp byte [rdi], al
+		cmp byte [rsi], bl
 		je .exit
 	
-		inc rdi
-		dec rcx
+		lodsb
+		stosb
+
+		call check_print_buff
+
 		jmp .strchr
 	
 	.exit:  
 	
-	sub rcx, 50
-	not rcx
-	mov rdx, rcx
-	inc rdx
-
 	pop rcx 
 	pop rax
-	pop rdi 	
-	pop rbp
 	ret
 
 print_char:
-	push rsi
-	lea rsi, [rbp + 8 * rcx] 
-	mov rdx, 1                                                     
-	mov rax, 1
-
-	push rcx
-	syscall 
-	pop rcx		
-								       
-	pop rsi
+	mov rax, [rbp + 8 * rcx]
+	stosb
+	call check_print_buff	
 	jmp _print_string
 
 print_string:
 	push rsi
-	mov rsi, [rbp + 8 * rcx]
+
+	mov rsi, [rbp + 8 * rcx] 
+
+	.cpy_byte:
+		lodsb
+		stosb
+		call check_print_buff
+		cmp byte [rsi], 0
+		jne .cpy_byte	
 	
-	push rsi
-	call get_string_len
-	pop rsi
-
-	mov rax, 1
-
-	push rcx
-	syscall
-	pop rcx
-
 	pop rsi
 	jmp _print_string
 
@@ -230,6 +212,8 @@ print_num_hex:
 	jmp print_num_main
 
 print_num_main:
+	push rdi
+
 	mov rdi, buff_num
 	mov rsi, rdi
 
@@ -241,16 +225,14 @@ print_num_main:
 		shr rax, cl ; тут регистр со сдвигом
 		test rax, rax
 		jnz .converting_num
-	
+
+	; буфферизация	
 	sub rdi, rsi
 	mov rdx, rdi
+
+	pop rdi
+	
 	call make_buff_rev
-	mov rsi, buff_rev
-
-	mov rdi, 1	
-
-	mov rax, 1	
-	syscall
 
 	pop rbx
 	pop rcx
@@ -271,7 +253,9 @@ get_asci_code_reg:
 
 make_buff_rev:
 	push rcx
-	lea rdi, [buff_rev + rdx - 1]
+	add rdi, rdx
+	push rdi
+	dec rdi 
 	mov rcx, rdx	
 	
 	.byte_cpy:
@@ -279,21 +263,26 @@ make_buff_rev:
 		lodsb
 		std
 		stosb
+		cld
+		call check_print_buff
 		loop .byte_cpy	
 
-	cld
+	pop rdi
 	pop rcx
 	ret
 
 print_num_dec:
 	push rsi
 	push rcx
+	push rdi
+
 	mov rdi, buff_num 
 	mov rsi, rdi
 
 	mov rax, [rbp + 8 * rcx]
 	
 	mov rcx, 10
+
 	.converting_num:
 		xor rdx, rdx
 		div rcx			
@@ -306,14 +295,37 @@ print_num_dec:
 	
 	sub rdi, rsi
 	mov rdx, rdi
-	call make_buff_rev
-	mov rsi, buff_rev
+	pop rdi
 
-	mov rax, 1
-	mov rdi, 1
-	syscall
+	call make_buff_rev
+
 	pop rcx
 	pop rsi
 	jmp _print_string 
+
+check_print_buff:
+	push rax
+	push rdx
+	push rsi
+	push rcx
+
+	cmp rdi, end_of_buff
+
+	jne .end_fun
+		mov rax, 1
+		mov rdi, 1
+		mov rdx, PRINT_BUFF_SIZE
+		mov rsi, buff_print
+		syscall
+	
+	mov rdi, buff_print
+	
+	.end_fun:	
+	pop rcx
+	pop rsi
+	pop rdx
+	pop rax	
+	
+	ret
 
 %include "data.s" 
