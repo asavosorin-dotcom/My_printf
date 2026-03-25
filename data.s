@@ -23,29 +23,30 @@ buff_float  times 16 dq 0
 
 ; написать обработчик ошибок
 spec_table:
-	dq exit
-	dq print_num_bin
-	dq print_char
-	dq print_num_dec
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq print_num_oct
-	dq exit
-	dq exit
-	dq exit
-	dq print_string
-	dq exit
-	dq exit
-	dq exit
-	dq exit
-	dq print_num_hex
-	dq exit
-	dq exit
+	  dq .exit
+	  dq print_num_bin
+	  dq print_char
+	  dq print_num_dec
+	  dq .exit
+	  dq print_num_float
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq print_num_oct
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq print_string
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq .exit
+	  dq print_num_hex
+	  dq .exit
+	  dq .exit
+
