@@ -12,6 +12,9 @@ extern printf
 section .text 
 global _start
 global _my_printf_
+
+; Посмотреть что с минусом
+
 ;_start:
 ;	;push 'L'
 ;	;push 103
@@ -370,7 +373,7 @@ print_num_float:
 	
 	mov rbx, [buff_float + r10 * 8] ; забрали double	
 
-	bt rbx, 64
+	bt rbx, 63
 	jnc .without_minus
 		
 		mov rax, '-'
