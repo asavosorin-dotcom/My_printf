@@ -7,7 +7,7 @@ extern print_string
 extern exit
 
 section .data
-
+adress_ret dq 0
 ;_string_: db `Hello\n` 
 _string_: db `Hello %b, I'm %c !!!\n$`
 _string2_: db `%b\n%o\n%x\n%d\n$`
@@ -18,7 +18,10 @@ buff_rev times 8 dq 0
 
 buff_print times 128 db 0
 end_of_buff:
+ 
+buff_float  times 16 dq 0
 
+; написать обработчик ошибок
 spec_table:
 	dq exit
 	dq print_num_bin

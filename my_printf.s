@@ -11,7 +11,6 @@ extern printf
 section .text 
 global _start
 global _my_printf_
-; сделать буферизацию (вместо syscall, lodsb в буффер)
 ;_start:
 ;	;push 'L'
 ;	;push 103
@@ -30,11 +29,12 @@ global _my_printf_
 ;==========================================================================================================================================
 ; Notes: первые 6 аргументов пушатся в стек, поэтому все аргменты в процессе вывода берутся из стека в прямом порядке от вершины
 ; В целях удобного доступа к 7, 8 и так далее аргументам в стеке, адрес возврата достается из стека в r10 и возвращается перед ret 
-; Registers: rcx - счетчик аргументов, r10 - лежит адрес возврата (НЕ ТРОГАТЬ НЕ ПРИ КАКИХ ОБСТОЯТЕЛЬСТВАХ)
+; Registers: rcx - счетчик аргументов в стеке, r15 - лежит адрес возврата (НЕ ТРОГАТЬ НЕ ПРИ КАКИХ ОБСТОЯТЕЛЬСТВАХ), r10 - счетчик аргумент
+; ов в векторе с float
 ;=========================================================================================================================================
 
 _my_printf_:
-	pop r15 ; забрали адрес возврата
+	pop rax ; забрали адрес возврата
 	push r9
 	push r8
 	push rcx
@@ -43,9 +43,12 @@ _my_printf_:
 	push rdi
 
 	push rbp
+	push rbx
+
+	mov [adress_ret], rax
 	mov rbp, rsp
-	;add rbp, 16
-	add rbp, 8 
+	add rbp, 16
+	;add rbp, 8 
 	xor rcx, rcx
 	mov rsi, [rbp]
 	mov rdi, buff_print
@@ -82,13 +85,15 @@ _my_printf_:
 	exit:
 	sub rdi, buff_print
 	mov rdx, rdi
-	inc rdx ;!!!!!!!!!!!!
+	;inc rdx ;!!!!!!!!!!!!
 	mov rax, 1
 	mov rdi, 1
 	mov rsi, buff_print
 	syscall 
-		
+	
+	pop rbx		
 	pop rbp
+
 	pop rdi
 	pop rsi
 	pop rdx
@@ -96,7 +101,8 @@ _my_printf_:
 	pop r8
 	pop r9
 	call printf
-	push r15
+	
+	push [adress_ret]
 	ret
 
 ;================================================================
@@ -281,7 +287,7 @@ print_num_dec:
 
 	mov rax, [rbp + 8 * rcx]
 
-	test rax, 1000000000000000000000000000000b
+	test rax, 1000000000000000000000000000000b ; 2 ^ 31; 32 бит
 	jz plus 
 	
 	push rax
@@ -342,5 +348,8 @@ check_print_buff:
 	pop rax	
 	
 	ret
+; будет счетчик вещественных чисел в их векторе
+;print_float:
+	
 
 %include "data.s" 
