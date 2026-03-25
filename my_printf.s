@@ -46,6 +46,17 @@ _my_printf_:
 	push rbp
 	push rbx
 
+	movups [buff_float], xmm0
+	movups [buff_float + 16], xmm1
+	movups [buff_float + 16 * 2], xmm2
+	movups [buff_float + 16 * 3], xmm3
+	movups [buff_float + 16 * 4], xmm4
+	movups [buff_float + 16 * 5], xmm5
+	movups [buff_float + 16 * 6], xmm6
+	movups [buff_float + 16 * 7], xmm7
+
+	xor r10, r10
+	
 	mov [adress_ret], rax
 	mov rbp, rsp
 	add rbp, 16
@@ -349,8 +360,146 @@ check_print_buff:
 	pop rax	
 	
 	ret
+
 ; будет счетчик вещественных чисел в их векторе
 print_num_float:
+	push rsi
+	push rcx
+
+	mov rsi, buff_float
 	
+	mov rbx, [buff_float + r10 * 8] ; забрали double	
+
+	bt rbx, 64
+	jnc .without_minus
+		
+		mov rax, '-'
+		stosb
+		call check_print_buff
+
+	.without_minus:
+	push rdi ; сохраняем положение в buff_print
+;===================== кладем экспоненту в rcx =================================
+	push rbx
+	mov rax, 7FF0000000000000h
+	and rbx, rax 
+	shr rbx, 52 ; оставляем только экспоненту
+	mov rcx, rbx
+	sub rcx, 1023 ; считаем реальную экспоненту
+	pop rbx
+;===============================================================================
+
+; ===================== достаем мантиссу в rdx =================================
+	push rbx
+	mov rax, 0FFFFFFFFFFFFFh 
+	mov rdx, rbx ; достаем мантиссу  
+	and rdx, rax
+	pop rbx
+; ==============================================================================
+; если экспонента больше, чем 23, то у числа нет дробной части и можно вывести .0
+; если экспонента больше 0, то сдвиг точки идет вправо и наобарот
+ 
+	cmp rcx, 0
+	jb .exp_below_zero
+		mov rdi, buff_num
+		call convert_fractional_to_int
+		call make_num_dec	
+		mov al, '.'
+		stosb
+		
+		pop rdx
+		not rcx
+		add rcx, 64 
+		shr rdx, cl ; оставили целую часть 	
+		mov rax, rdx
+
+		call make_num_dec
+		
+		sub rdi, [buff_num]
+		mov rdx, rdi
+		pop rdi
+		call make_buff_rev
+	.exp_below_zero:
+	
+	pop rcx
+	pop rsi		
+	jmp _print_string	
+;======================================================================================================================
+; Notes: преобразует число rax в последовательность аски-кодов, соответсвующая записи числа rax в 10 системе счисления 
+; Start: rax - число для преобразования
+;	 rdi - буффер для записи последовательностей кодов
+; Destr: rax, rdi
+;======================================================================================================================
+make_num_dec:
+	push rcx
+	push rdx
+	
+	mov rcx, 10
+
+	.converting_num:
+		xor rdx, rdx
+		div rcx			
+		push rax
+		mov rax, rdx
+		call get_asci_code_reg
+		pop rax
+		test rax, rax
+		jnz .converting_num
+	
+	pop rdx
+	pop rcx
+	ret
+
+;======================================================================================================================
+; Notes: преобразует дробную часть числа в целое число, соответствующее десятичному представлению дробной части числа
+; Start: rdx - мантисса, rcx - экспонента
+; Regs: rbx - номер проверяемого бита из дробной части
+;       r11 - степень 5 соответствующая номеру итерации 
+; Ret: rax - целое число
+;======================================================================================================================
+
+; у
+; забираем степень 5
+; умножаем на 5
+; добавляем при необходимости результат
+
+
+convert_fractional_to_int:
+	push rcx
+	push rdx
+	not rcx
+	add rcx, 52 ; индекс '.' в двоичной записи числа
+	inc rcx
+
+	;mov rbx, 1
+	;shl rbx, cl ; маска для получения бита в дроби слева направо
+
+	;push rax
+	;mov rax, rdx
+	;and rax, rbx
+	mov r11, 1
+	xor rax, rax
+	;test rax, rax
+	;pop rax
+	.convert:
+		test rcx, rcx
+		jz .end_of_convert	
+
+		push rdx
+		mul r11, 5
+		mul rax, 10
+		pop rdx	
+		
+		dec rcx
+		bt rdx, rcx
+		jnc .convert
+
+		add rax, r11
+		jmp .convert	
+
+	.end_of_convert:	
+	pop rdx
+	pop rcx
+	ret
 
 %include "data.s" 
