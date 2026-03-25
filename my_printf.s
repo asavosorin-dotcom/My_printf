@@ -479,11 +479,15 @@ convert_fractional_to_int:
 	;and rax, rbx
 	mov r11, 1
 	xor rax, rax
+	xor rbx, rbx
 	;test rax, rax
 	;pop rax
 	.convert:
 		test rcx, rcx
-		jz .end_of_convert	
+		jz .end_of_convert
+	
+		cmp rbx, 18 
+		je .end_of_convert
 
 		push rdx
 		mul r11, 5
@@ -491,6 +495,8 @@ convert_fractional_to_int:
 		pop rdx	
 		
 		dec rcx
+		inc rbx
+
 		bt rdx, rcx
 		jnc .convert
 
