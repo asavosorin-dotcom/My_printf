@@ -3,6 +3,7 @@ global print_char
 global print_num_dec
 global print_num_oct
 global print_num_hex
+global print_num_float
 global print_string
 global exit
 
@@ -349,7 +350,7 @@ check_print_buff:
 	
 	ret
 ; будет счетчик вещественных чисел в их векторе
-;print_float:
+print_num_float:
 	
 
 %include "data.s" 
