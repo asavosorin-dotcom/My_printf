@@ -401,23 +401,30 @@ print_num_float:
  
 	cmp rcx, 0
 	jb .exp_below_zero
+		push rcx
+		push rdx
 		mov rdi, buff_num
 		call convert_fractional_to_int
 		call make_num_dec	
 		mov al, '.'
 		stosb
-		
 		pop rdx
+	
+		pop rcx
 		not rcx
-		add rcx, 64 
+		add rcx, 52
+		inc rcx
+		mov rax, 1 << 52
+		or rdx, rax
 		shr rdx, cl ; оставили целую часть 	
 		mov rax, rdx
 
 		call make_num_dec
 		
-		sub rdi, [buff_num]
+		sub rdi, buff_num
 		mov rdx, rdi
 		pop rdi
+		mov rsi, buff_num
 		call make_buff_rev
 	.exp_below_zero:
 	
