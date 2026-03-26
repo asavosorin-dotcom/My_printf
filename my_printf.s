@@ -13,7 +13,7 @@ section .text
 global _start
 global _my_printf_
 
-; Посмотреть что с минусом
+; Сделать вывод только до 6 знака и повысить точно при помощи rdx в умножении на 10 rax
 
 ;_start:
 ;	;push 'L'
@@ -279,6 +279,13 @@ get_asci_code_reg:
 make_buff_rev:
 	push rcx
 	add rdi, rdx
+
+	cmp rdi, end_of_buff_print
+	jb no_flush
+		call check_print_buff
+		add rdi, rdx
+	no_flush:
+  
 	push rdi
 	dec rdi 
 	mov rcx, rdx	
@@ -345,9 +352,9 @@ check_print_buff:
 	push rsi
 	push rcx
 
-	cmp rdi, end_of_buff
+	cmp rdi, end_of_buff_print
 
-	jne .end_fun
+	jb .end_func
 		mov rax, 1
 		mov rdi, 1
 		mov rdx, PRINT_BUFF_SIZE
@@ -356,7 +363,7 @@ check_print_buff:
 	
 	mov rdi, buff_print
 	
-	.end_fun:	
+	.end_func:	
 	pop rcx
 	pop rsi
 	pop rdx

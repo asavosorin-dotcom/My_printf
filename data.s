@@ -18,7 +18,7 @@ buff_num times 8 dq 0
 buff_rev times 8 dq 0
 
 buff_print times 128 db 0
-end_of_buff:
+end_of_buff_print:
  
 buff_float  times 16 dq 0
 
