@@ -397,16 +397,23 @@ print_num_float:
 	mov rax, 0FFFFFFFFFFFFFh 
 	mov rdx, rbx ; достаем мантиссу  
 	and rdx, rax
+	mov rax, 1 << 52
+	or rdx, rax ; поставили 1 в 1.xxxxb
 	pop rbx
 ; ==============================================================================
 ; если экспонента больше, чем 23, то у числа нет дробной части и можно вывести .0
 ; если экспонента больше 0, то сдвиг точки идет вправо и наобарот
  
 	cmp rcx, 0
-	jb .exp_below_zero
+	;jb .exp_below_zero
 		push rcx
 		push rdx
 		mov rdi, buff_num
+
+		not rcx
+                add rcx, 52 ; индекс '.' в двоичной записи числа
+		inc rcx  
+                                       
 		call convert_fractional_to_int
 		call make_num_dec	
 		mov al, '.'
@@ -417,8 +424,8 @@ print_num_float:
 		not rcx
 		add rcx, 52
 		inc rcx
-		mov rax, 1 << 52
-		or rdx, rax
+
+
 		shr rdx, cl ; оставили целую часть 	
 		mov rax, rdx
 
@@ -429,8 +436,19 @@ print_num_float:
 		pop rdi
 		mov rsi, buff_num
 		call make_buff_rev
-	.exp_below_zero:
+		jmp end_of_print_float
 	
+	.exp_below_zero:
+		;push rcx
+		;push rdx
+		;mov rdi, buff_num
+		;
+		;not rcx
+		;inc rcx 
+		;add rcx
+		
+
+	end_of_print_float:
 	pop rcx
 	pop rsi		
 	jmp _print_string	
@@ -477,12 +495,11 @@ make_num_dec:
 convert_fractional_to_int:
 	push rcx
 	push rdx
-	not rcx
-	add rcx, 52 ; индекс '.' в двоичной записи числа
-	inc rcx
 
 	;mov rbx, 1
 	;shl rbx, cl ; маска для получения бита в дроби слева направо
+
+
 
 	;push rax
 	;mov rax, rdx
