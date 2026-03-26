@@ -367,12 +367,21 @@ check_print_buff:
 ; будет счетчик вещественных чисел в их векторе
 print_num_float:
 	push rsi
-	push rcx
 
 	mov rsi, buff_float
 	
-	mov rbx, [buff_float + r10 * 8] ; забрали double	
+	cmp r10, 8
+	jg get_double_from_stack
+		mov rbx, [buff_float + r10 * 8] ; забрали double	
+		dec rcx
+		jmp end_of_get_double		
 
+	get_double_from_stack:
+		mov rbx, [rbp + rcx * 8]
+
+	end_of_get_double:
+	push rcx 
+	inc r10
 	bt rbx, 63
 	jnc .without_minus
 		
@@ -403,52 +412,38 @@ print_num_float:
 ; ==============================================================================
 ; если экспонента больше, чем 23, то у числа нет дробной части и можно вывести .0
 ; если экспонента больше 0, то сдвиг точки идет вправо и наобарот
- 
-	cmp rcx, 0
-	;jb .exp_below_zero
-		push rcx
-		push rdx
-		mov rdi, buff_num
 
-		not rcx
-                add rcx, 52 ; индекс '.' в двоичной записи числа
-		inc rcx  
-                                       
-		call convert_fractional_to_int
-		call make_num_dec	
-		mov al, '.'
-		stosb
-		pop rdx
+	push rcx
+	push rdx
+	mov rdi, buff_num
+
+	not rcx
+        add rcx, 52 ; индекс '.' в двоичной записи числа
+	inc rcx  
+                               
+	call convert_fractional_to_int
+	call make_num_dec	
+	mov al, '.'
+	stosb
+	pop rdx
+
+	pop rcx
+	not rcx
+	add rcx, 52
+	inc rcx
+
+
+	shr rdx, cl ; оставили целую часть 	
+	mov rax, rdx
+
+	call make_num_dec
 	
-		pop rcx
-		not rcx
-		add rcx, 52
-		inc rcx
+	sub rdi, buff_num
+	mov rdx, rdi
+	pop rdi
+	mov rsi, buff_num
+	call make_buff_rev
 
-
-		shr rdx, cl ; оставили целую часть 	
-		mov rax, rdx
-
-		call make_num_dec
-		
-		sub rdi, buff_num
-		mov rdx, rdi
-		pop rdi
-		mov rsi, buff_num
-		call make_buff_rev
-		jmp end_of_print_float
-	
-	.exp_below_zero:
-		;push rcx
-		;push rdx
-		;mov rdi, buff_num
-		;
-		;not rcx
-		;inc rcx 
-		;add rcx
-		
-
-	end_of_print_float:
 	pop rcx
 	pop rsi		
 	jmp _print_string	
