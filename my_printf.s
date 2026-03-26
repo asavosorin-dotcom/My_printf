@@ -474,12 +474,13 @@ print_num_float:
 		jb .below_6
 		push rcx
 		push r10
-		sub rcx, 6
+		;sub rcx, 6
 		sub r10, 8
-		add rcx, 10
-		mov rbx, [rbp + rcx * 8]
+		add rcx, r10
+		mov rbx, [rbp + rcx * 8 + 8]
 		pop r10
 		pop rcx
+		jmp end_of_get_double
 		.below_6:
 			mov rbx, [rbp + 6 * 8 + r10 - 8]
 
@@ -528,6 +529,13 @@ print_num_float:
 	call convert_fractional_to_int
 	call make_num_dec	
 	mov al, '.'
+	mov r14, rdi
+	sub r14, 6
+
+	cmp r14, buff_num
+	jg .end_of_count_start_buffer_num
+		mov r14, buff_num 
+	.end_of_count_start_buffer_num:
 	stosb
 	pop rdx
 
@@ -542,10 +550,10 @@ print_num_float:
 
 	call make_num_dec
 	
-	sub rdi, buff_num
+	sub rdi, r14
 	mov rdx, rdi
 	pop rdi
-	mov rsi, buff_num
+	mov rsi, r14
 	call make_buff_rev
 
 	pop rcx
