@@ -50,13 +50,13 @@ _my_printf_:
 	push rbx
 
 	movups [buff_float], xmm0
-	movups [buff_float + 16], xmm1
-	movups [buff_float + 16 * 2], xmm2
-	movups [buff_float + 16 * 3], xmm3
-	movups [buff_float + 16 * 4], xmm4
-	movups [buff_float + 16 * 5], xmm5
-	movups [buff_float + 16 * 6], xmm6
-	movups [buff_float + 16 * 7], xmm7
+	movups [buff_float + 8], xmm1
+	movups [buff_float + 8 * 2], xmm2
+	movups [buff_float + 8 * 3], xmm3
+	movups [buff_float + 8 * 4], xmm4
+	movups [buff_float + 8 * 5], xmm5
+	movups [buff_float + 8 * 6], xmm6
+	movups [buff_float + 8 * 7], xmm7
 
 	xor r10, r10
 	
@@ -69,7 +69,7 @@ _my_printf_:
 	mov rdi, buff_print
  
 	_print_string:
-		call parsing_string ; значение сразу кладется в rdx 
+		call parsing_string ;
 		xor rbx, rbx
 
 		cmp byte [rsi], `\0` 
