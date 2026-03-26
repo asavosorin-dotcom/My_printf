@@ -91,7 +91,8 @@ _my_printf_:
 		.table:
 		sub rbx, 'a'
 		inc rsi
-		
+
+		.below_8:
 		jmp [spec_table + rbx * 8]
 
 		jmp _print_string 
@@ -183,7 +184,16 @@ parsing_string:
 	ret
 
 print_char:
+	push rcx
+	cmp r10, 8
+	jb .below_8
+	
+		add rcx, r10
+		sub rcx, 8
+
+	.below_8:
 	mov rax, [rbp + 8 * rcx]
+	pop rcx
 	stosb
 	call check_print_buff	
 	jmp _print_string
@@ -191,7 +201,20 @@ print_char:
 print_string:
 	push rsi
 
-	mov rsi, [rbp + 8 * rcx] 
+	push rcx
+	cmp rcx, 6
+	jb .rcx_below_6
+	cmp r10, 8
+	jb .below_8
+	
+		add rcx, r10
+		sub rcx, 8
+
+	.below_8:
+	.rcx_below_6:
+	mov rsi, [rbp + 8 * rcx]
+	pop rcx
+
 
 	.cpy_byte:
 		lodsb
@@ -208,7 +231,20 @@ print_num_bin:
 	push rcx
 	push rbx
 	
-	mov rax, [rbp + 8 * rcx] ; забрали число
+	push rcx
+	
+	cmp rcx, 6
+	jb .rcx_below_6
+	cmp r10, 8
+	jb .below_8
+	
+		add rcx, r10
+		sub rcx, 8
+
+	.below_8:
+	.rcx_below_6:
+	mov rax, [rbp + 8 * rcx]
+	pop rcx
 	
 	mov cl, 1
 	mov rbx, 1
@@ -218,8 +254,25 @@ print_num_oct:
 	push rsi
 	push rcx
 	push rbx
+
+	push rcx
+	cmp r10, 8
+
 	
-	mov rax, [rbp + 8 * rcx] ; забрали число
+	cmp rcx, 6
+	jb .rcx_below_6
+	cmp r10, 8
+	jb .below_8
+
+	
+		add rcx, r10
+		sub rcx, 8
+
+	.below_8:
+	.rcx_below_6:
+
+	mov rax, [rbp + 8 * rcx]
+	pop rcx
 	
 	mov cl, 3
 	mov rbx, 7
@@ -230,7 +283,24 @@ print_num_hex:
 	push rcx
 	push rbx
 	
-	mov rax, [rbp + 8 * rcx] ; забрали число
+	push rcx
+	cmp r10, 8
+
+
+	cmp rcx, 6
+	jb .rcx_below_6
+	cmp r10, 8
+	jb .below_8
+
+	
+		add rcx, r10
+		sub rcx, 8
+
+	.below_8:
+	.rcx_below_6:
+
+	mov rax, [rbp + 8 * rcx]
+	pop rcx
 	
 	mov cl, 4
 	mov rbx, 0fh
@@ -306,8 +376,23 @@ make_buff_rev:
 print_num_dec:
 	push rsi
 	push rcx
+	
+	push rcx
+	
+	cmp rcx, 6
+	jb .rcx_below_6
+	cmp r10, 8
+	jb .below_8
+
+	
+		add rcx, r10
+		sub rcx, 8
+
+	.below_8:
+	.rcx_below_6:
 
 	mov rax, [rbp + 8 * rcx]
+	pop rcx
 
 	test rax, 1000000000000000000000000000000b ; 2 ^ 31; 32 бит
 	jz plus 
@@ -376,15 +461,27 @@ print_num_float:
 	push rsi
 
 	mov rsi, buff_float
+
+	dec rcx
 	
 	cmp r10, 8
-	jg get_double_from_stack
+	jge get_double_from_stack
 		mov rbx, [buff_float + r10 * 8] ; забрали double	
-		dec rcx
 		jmp end_of_get_double		
 
 	get_double_from_stack:
+		cmp rcx, 6
+		jb .below_6
+		push rcx
+		push r10
+		sub rcx, 6
+		sub r10, 8
+		add rcx, 10
 		mov rbx, [rbp + rcx * 8]
+		pop r10
+		pop rcx
+		.below_6:
+			mov rbx, [rbp + 6 * 8 + r10 - 8]
 
 	end_of_get_double:
 	push rcx 
