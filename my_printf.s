@@ -1,3 +1,5 @@
+default rel
+
 global print_num_bin
 global print_char
 global print_num_dec
@@ -49,24 +51,26 @@ _my_printf_:
 	push rbp
 	push rbx
 
-	movups [buff_float], xmm0
-	movups [buff_float + 8], xmm1
-	movups [buff_float + 8 * 2], xmm2
-	movups [buff_float + 8 * 3], xmm3
-	movups [buff_float + 8 * 4], xmm4
-	movups [buff_float + 8 * 5], xmm5
-	movups [buff_float + 8 * 6], xmm6
-	movups [buff_float + 8 * 7], xmm7
+	lea r13, [rel buff_float]
+	movups [r13], xmm0
+	movups [r13 + 8], xmm1
+	movups [r13 + 8 * 2], xmm2
+	movups [r13 + 8 * 3], xmm3
+	movups [r13 + 8 * 4], xmm4
+	movups [r13 + 8 * 5], xmm5
+	movups [r13 + 8 * 6], xmm6
+	movups [r13 + 8 * 7], xmm7
 
 	xor r10, r10
-	
-	mov [adress_ret], rax
+
+	lea r13, [rel adress_ret]	
+	mov [r13], rax
 	mov rbp, rsp
 	add rbp, 16
 	;add rbp, 8 
 	xor rcx, rcx
 	mov rsi, [rbp]
-	mov rdi, buff_print
+	lea rdi, [rel buff_print]
  
 	_print_string:
 		call parsing_string ;
@@ -81,30 +85,35 @@ _my_printf_:
 
 		cmp bl, '%'
 		jne .table
-		
 		lodsb
 		stosb
+		dec rcx
 		call check_print_buff
 		
 		jmp _print_string		
 
 		.table:
-		sub rbx, 'a'
+		
 		inc rsi
 
 		.below_8:
-		jmp [spec_table + rbx * 8]
-
+		
+		lea r13, [rel spec_table]
+		jmp [r13 + (rbx - 'a') * 8]
+ 
+		; jmp [spec_table + rbx * 8 - 'a' * 8]
+		; jmp [(spec_table - 'a' * 8) + rbx * 8]
 		jmp _print_string 
 
 	
 	exit:
-	sub rdi, buff_print
+	lea r13, [rel buff_print]
+	sub rdi, r13
 	mov rdx, rdi
 	;inc rdx ;!!!!!!!!!!!!
 	mov rax, 1
 	mov rdi, 1
-	mov rsi, buff_print
+	lea rsi, [rel buff_print]
 	syscall 
 	
 	pop rbx		
@@ -116,38 +125,15 @@ _my_printf_:
 	pop rcx
 	pop r8
 	pop r9
-	call printf
-	
-	push [adress_ret]
+
+	;mov rax, 0
+	call printf wrt ..plt 
+
+	lea r13, [rel adress_ret]	
+	push [r13]
 	ret
 
-;================================================================
-; Start: строка находится в стеке
-; Return: rdx - количество символов в строке
-;================================================================
-get_string_len:
-	push rbp
-	push rdi
-	push rax
-	push rcx
 
-	lea rbp, [rsp + 40]
-		
-	mov rdi, [rbp]; сохраняем начало строки
-	mov al, `\0`
-	mov rcx, 50 ; определить через макрос максимальный размер буффера
-
-	repne scasb
-
-	sub rcx, 50
-	not rcx
-	mov rdx, rcx
-
-	pop rcx 
-	pop rax
-	pop rdi 	
-	pop rbp
-	ret
 
 ;================================================================
 ; Start: строка в стеке
@@ -309,7 +295,7 @@ print_num_hex:
 print_num_main:
 	push rdi
 
-	mov rdi, buff_num
+	lea rdi, [rel buff_num]
 	mov rsi, rdi
 
 	.converting_num:	
@@ -350,7 +336,8 @@ make_buff_rev:
 	push rcx
 	add rdi, rdx
 
-	cmp rdi, end_of_buff_print
+	lea r13, [rel end_of_buff_print]
+	cmp rdi, r13
 	jb no_flush
 		call check_print_buff
 		add rdi, rdx
@@ -407,7 +394,7 @@ print_num_dec:
 	inc eax
 	plus:
 	push rdi
-	mov rdi, buff_num 
+	lea rdi, [rel buff_num] 
 	mov rsi, rdi	
 	mov rcx, 10
 
@@ -437,16 +424,17 @@ check_print_buff:
 	push rsi
 	push rcx
 
-	cmp rdi, end_of_buff_print
+	lea r13, [rel end_of_buff_print]
+	cmp rdi, r13
 
 	jb .end_func
 		mov rax, 1
 		mov rdi, 1
 		mov rdx, PRINT_BUFF_SIZE
-		mov rsi, buff_print
+		lea rsi, [rel buff_print]
 		syscall
 	
-	mov rdi, buff_print
+	lea rdi, [rel buff_print]
 	
 	.end_func:	
 	pop rcx
@@ -460,13 +448,14 @@ check_print_buff:
 print_num_float:
 	push rsi
 
-	mov rsi, buff_float
+	lea rsi, [rel buff_float]
 
 	dec rcx
 	
 	cmp r10, 8
 	jge get_double_from_stack
-		mov rbx, [buff_float + r10 * 8] ; забрали double	
+		lea r13, [rel buff_float]
+		mov rbx, [r13 + r10 * 8] ; забрали double	
 		jmp end_of_get_double		
 
 	get_double_from_stack:
@@ -520,7 +509,7 @@ print_num_float:
 
 	push rcx
 	push rdx
-	mov rdi, buff_num
+	lea rdi, [rel buff_num]
 
 	not rcx
         add rcx, 52 ; индекс '.' в двоичной записи числа
@@ -532,9 +521,10 @@ print_num_float:
 	mov r14, rdi
 	sub r14, 6
 
-	cmp r14, buff_num
+	lea r13, [rel buff_num]
+	cmp r14, r13
 	jg .end_of_count_start_buffer_num
-		mov r14, buff_num 
+		lea r14, [rel buff_num] 
 	.end_of_count_start_buffer_num:
 	stosb
 	pop rdx
