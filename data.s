@@ -22,6 +22,9 @@ end_of_buff_print:
  
 buff_float  times 16 dq 0
 
+NaN_string db "NaN"
+Inf_string db "Inf"
+
 ; написать обработчик ошибок
 spec_table:
 	  dq exit

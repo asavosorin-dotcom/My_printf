@@ -31,6 +31,7 @@ int mmain()
 
 int main()
 {
-	_my_printf_("%% %d\n", 10);
+	_my_printf_("%f\n", 1.5);
+
 	return 0;
 }

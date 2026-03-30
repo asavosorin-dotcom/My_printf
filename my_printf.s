@@ -15,7 +15,7 @@ section .text
 global _start
 global _my_printf_
 
-; Сделать вывод только до 6 знака и повысить точно при помощи rdx в умножении на 10 rax
+; не конвертировакть дробную часть, а закинуть все в xmm, умножить на 10 ^ 6, а потом достать дробную част; не конвертировакть дробную часть, а закинуть все в xmm, умножить на 10 ^ 6, а потом достать дробную часть
 
 ;_start:
 ;	;push 'L'
@@ -134,11 +134,10 @@ _my_printf_:
 	ret
 
 
-
 ;================================================================
 ; Start: строка в стеке
 ; Return: длина строки до одного из специальных символов
-;================================================================
+;===============================================================
 
 parsing_string:
 	push rax
@@ -474,6 +473,9 @@ print_num_float:
 			mov rbx, [rbp + 6 * 8 + r10 - 8]
 
 	end_of_get_double:
+
+	; положить rbx в xmm0
+
 	push rcx 
 	inc r10
 	bt rbx, 63
@@ -485,25 +487,11 @@ print_num_float:
 
 	.without_minus:
 	push rdi ; сохраняем положение в buff_print
-;===================== кладем экспоненту в rcx =================================
-	push rbx
-	mov rax, 7FF0000000000000h
-	and rbx, rax 
-	shr rbx, 52 ; оставляем только экспоненту
-	mov rcx, rbx
-	sub rcx, 1023 ; считаем реальную экспоненту
-	pop rbx
-;===============================================================================
+	
+	call get_exponent_mantiss
+	cmp rcx, 0x7FF
+	je .error_double 
 
-; ===================== достаем мантиссу в rdx =================================
-	push rbx
-	mov rax, 0FFFFFFFFFFFFFh 
-	mov rdx, rbx ; достаем мантиссу  
-	and rdx, rax
-	mov rax, 1 << 52
-	or rdx, rax ; поставили 1 в 1.xxxxb
-	pop rbx
-; ==============================================================================
 ; если экспонента больше, чем 23, то у числа нет дробной части и можно вывести .0
 ; если экспонента больше 0, то сдвиг точки идет вправо и наобарот
 
@@ -511,44 +499,82 @@ print_num_float:
 	push rdx
 	lea rdi, [rel buff_num]
 
-	not rcx
-        add rcx, 52 ; индекс '.' в двоичной записи числа
-	inc rcx  
-                               
-	call convert_fractional_to_int
-	call make_num_dec	
-	mov al, '.'
-	mov r14, rdi
-	sub r14, 6
+	movq xmm8, rbx
+	movq xmm9, rbx
 
-	lea r13, [rel buff_num]
-	cmp r14, r13
-	jg .end_of_count_start_buffer_num
-		lea r14, [rel buff_num] 
-	.end_of_count_start_buffer_num:
+
+
+	mov al, '.'
 	stosb
 	pop rdx
 
 	pop rcx
-	not rcx
-	add rcx, 52
-	inc rcx
 
-
-	shr rdx, cl ; оставили целую часть 	
+	movq xmm8, xmm9	
+	call get_int_part_of_double
 	mov rax, rdx
-
 	call make_num_dec
-	
+
+	lea r14, [rel buff_num] 
 	sub rdi, r14
 	mov rdx, rdi
 	pop rdi
 	mov rsi, r14
 	call make_buff_rev
 
+	call get_int_part_of_double
+        cvtsi2sd xmm10, rdx 
+	subsd xmm8, xmm10 ; оставили только дробную часть
+	
+	mov rcx, 6
+
+	.mul_ten:
+		mov r13, 10
+		cvtsi2sd xmm10, r13
+		mulsd xmm8, xmm10
+		call get_int_part_of_double
+		movq rbx, xmm8
+		test rbx, rbx
+		jz .normal_int_part
+		cmp rdx, 10
+		jb .normal_int_part
+		mov rdx, 0
+		.normal_int_part:
+		mov rax, rdx
+		call make_num_dec
+		cvtsi2sd xmm10, rdx
+		subsd xmm8, xmm10
+		loop .mul_ten	
+	
+	mov rcx, 6
+	.print_fract_num:
+		lodsb
+		stosb
+		loop .print_fract_num
+
 	pop rcx
 	pop rsi		
-	jmp _print_string	
+	jmp _print_string
+	
+	.error_double:
+		pop rdi
+		cmp rdx, 0
+		mov rcx, 3
+		je .NaN
+		    lea rsi, [rel Inf_string]
+		    jmp .print_symb	
+		.NaN:
+		    lea rsi, [rel NaN_string]
+			
+		.print_symb:
+			lodsb
+			stosb
+			loop .print_symb
+	
+		pop rcx
+		pop rsi		
+		jmp _print_string
+	
 ;======================================================================================================================
 ; Notes: преобразует число rax в последовательность аски-кодов, соответсвующая записи числа rax в 10 системе счисления 
 ; Start: rax - число для преобразования
@@ -632,4 +658,70 @@ convert_fractional_to_int:
 	pop rcx
 	ret
 
+;================================================================================================
+; Start: rbx - ргеистр в котором лежит представление double
+; Ret: rcx - экспонента
+;      rdx - мантисса
+;  
+;================================================================================================
+
+get_exponent_mantiss:
+	;========= кладем экспоненту в rcx ========
+	push rbx
+	mov rax, 7FF0000000000000h
+	and rbx, rax 
+	shr rbx, 52 ; оставляем только экспоненту
+	mov rcx, rbx
+
+	;cmp rcx, rax
+
+	;sub rcx, 1023 ; считаем реальную экспоненту
+	pop rbx
+       ;==========================================
+
+       ;======== достаем мантиссу в rdx ==========
+	push rbx
+	mov rax, 0FFFFFFFFFFFFFh 
+	mov rdx, rbx ; достаем мантиссу  
+	and rdx, rax
+	;test rax, rax
+	mov rax, 1 << 52
+	or rdx, rax ; поставили 1 в 1.xxxxb
+	pop rbx
+       ;==========================================
+	ret
+
+;make_fractional_int:
+	;mov r13, 10
+	;mulsd xmm8, r13
+	;movq rbx, xmm8 
+
+	;call get_exponent_mantiss
+;===================================================================================================
+; Start: xmm8 - double
+; 	 rdi - buff_num
+; Destr: rbx, rcx, rdx
+; Ret: rdx - целая часть
+;===================================================================================================
+
+get_int_part_of_double:
+	push rcx
+	movq rbx, xmm8
+	xor rdx, rdx
+	test rbx, rbx
+	jz .ret
+	call get_exponent_mantiss
+
+	sub rcx, 1023
+	
+	not rcx
+	add rcx, 52
+	inc rcx
+	
+	shr rdx, cl ; оставляем только целую часть
+	
+	.ret:
+	pop rcx
+	ret
+	
 %include "data.s" 
