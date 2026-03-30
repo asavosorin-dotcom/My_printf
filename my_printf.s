@@ -544,12 +544,6 @@ print_num_float:
 		subsd xmm8, xmm10
 		loop .mul_ten	
 	
-	;mov rcx, 6
-	;.print_fract_num:
-	;	lodsb
-	;	stosb
-	;	loop .print_fract_num
-
 	pop rcx
 	pop rsi		
 	jmp _print_string

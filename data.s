@@ -22,35 +22,19 @@ end_of_buff_print:
  
 buff_float  times 16 dq 0
 
-NaN_string db "NaN"
+NaN_string db "Nan"
 Inf_string db "Inf"
 
-; написать обработчик ошибок
 spec_table:
-	  dq exit
-	  dq print_num_bin
-	  dq print_char
-	  dq print_num_dec
-	  dq exit
-	  dq print_num_float
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq print_num_oct
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq print_string
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq exit
-	  dq print_num_hex
-	  dq exit
-	  dq exit
-
+	  dq exit            ; a        -------------------------
+	  dq print_num_bin   ; %b
+	  dq print_char      ; %c
+	  dq print_num_dec   ; %d
+	  dq exit	     ; e        --------------------------
+	  dq print_num_float ; %f
+	  times 8 dq exit    ; ghij klmn ------------------------- 
+	  dq print_num_oct   ; %o
+	  times 3 dq exit    ; pqr      --------------------------
+	  dq print_string    ; %s       
+	  times 4 dq exit    ; tuvw     -------------------------- 
+	  dq print_num_hex   ; %x
