@@ -1,8 +1,9 @@
 #include <stdio.h>
+#include <math.h>
 
 extern "C" void _my_printf_(...) __attribute__((format(printf, 1, 2))); 
 
-int mmain()
+int main()
 {
 
 	_my_printf_("%d\n%d\n%s:%d\n%s:%b\n%x\n%c\n%%333\n", 13, 13, "hahahaha", 17, "uaaaaaaaaaa", 18, 26, 'B');
@@ -15,9 +16,9 @@ int mmain()
 
 	printf("--------------------------------------------------\n");
 	_my_printf_("%d\n%d\n%s:%d\n%s:%d\n%x\n%c\n333\n"
-	       "%d %s %x %d %% %c %d\n",
+	       "%d %s %x %% %c %d %f %f\n",
 	       13, 13, "hahahaha", 17, "uaaaaaaaaaa", 18, 26, 'B',
-	       -1, "love", 3802, 100, 33, 126
+	       -1, "love", 3802, 33, 162, 2.7919, 1.0/0.0
 	      );
 	printf("--------------------------------------------------\n");
 
@@ -29,9 +30,9 @@ int mmain()
 	return 0;
 }
 
-int main()
+int mmain()
 {
-	_my_printf_("%f\n", 1.5);
-
+	//_my_printf_("%d %s %f %f %f %f %f %f\n", 10, "love", 1.371, 1.78, NAN, 1.0/0.0, 1.96, 2.15);
+	_my_printf_("%x %f %f\n", 4802, 2.75, 1.0/0.0);
 	return 0;
 }

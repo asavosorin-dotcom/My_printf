@@ -502,8 +502,6 @@ print_num_float:
 	movq xmm8, rbx
 	movq xmm9, rbx
 
-
-
 	mov al, '.'
 	stosb
 	pop rdx
@@ -546,11 +544,11 @@ print_num_float:
 		subsd xmm8, xmm10
 		loop .mul_ten	
 	
-	mov rcx, 6
-	.print_fract_num:
-		lodsb
-		stosb
-		loop .print_fract_num
+	;mov rcx, 6
+	;.print_fract_num:
+	;	lodsb
+	;	stosb
+	;	loop .print_fract_num
 
 	pop rcx
 	pop rsi		
@@ -558,9 +556,12 @@ print_num_float:
 	
 	.error_double:
 		pop rdi
-		cmp rdx, 0
 		mov rcx, 3
-		je .NaN
+		mov r13, 1 << 52
+		sub rdx, r13
+		cmp rdx, 0
+
+		jne .NaN
 		    lea rsi, [rel Inf_string]
 		    jmp .print_symb	
 		.NaN:
